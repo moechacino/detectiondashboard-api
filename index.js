@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
-const port = process.env.PORT || 9000;
+const port = process.env.PORT || 5000;
 const db = require("./db/db");
 const deteksiburung = require("./routes/deteksiburung");
 const fotodaun = require("./routes/fotodaun");
