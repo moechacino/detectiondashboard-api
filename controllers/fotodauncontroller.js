@@ -13,6 +13,7 @@ const rmdir = (val) => {
 
 const getAllFiles = async (req, res) => {
   let dataFiles = [];
+
   const getData = async (keys) => {
     let getObjectParams = {
       Bucket: BUCKET_NAME,
@@ -39,7 +40,7 @@ const getAllFiles = async (req, res) => {
       console.error(`Error getting metadata for ${keys.Key}:`, error);
     }
   };
-  let keys = [];
+
   const listObjectsParams = {
     Bucket: BUCKET_NAME,
     Prefix: "fotodaun/",
@@ -47,22 +48,19 @@ const getAllFiles = async (req, res) => {
   const data = await s3.send(new ListObjectsV2Command(listObjectsParams));
   const files = data.Contents;
 
-  keys = files
-    .map((data) => {
-      return data.Key !== "fotodaun/"
-        ? {
-            Key: rmdir(data.Key),
-            Date: data.LastModified,
-          }
-        : null;
-    })
-    .filter(Boolean);
+  const sortedFiles = files.sort(
+    (a, b) =>
+      new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime()
+  );
 
-  const promises = keys.map(async (e) => {
-    await getData(e);
-  });
+  for (const file of sortedFiles) {
+    if (file.Key !== "fotodaun/") {
+      const key = rmdir(file.Key);
+      const date = file.LastModified;
 
-  await Promise.all(promises);
+      await getData({ Key: key, Date: date });
+    }
+  }
 
   res.json(dataFiles);
 };

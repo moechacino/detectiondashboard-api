@@ -8,6 +8,10 @@ const deteksiburung = require("./routes/deteksiburung");
 const fotodaun = require("./routes/fotodaun");
 const deteksipemilik = require("./routes/deteksipemilik");
 
+const cors = require("cors");
+
+app.use(cors());
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

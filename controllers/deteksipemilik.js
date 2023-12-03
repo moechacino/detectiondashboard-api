@@ -13,10 +13,11 @@ const rmdir = (val) => {
 
 const getVideo = async (req, res) => {
   let dataFiles = [];
+
   const getData = async (keys) => {
     let getObjectParams = {
       Bucket: BUCKET_NAME,
-      Key: `video/${keys.Key}`,
+      Key: `fotopemilik/${keys.Key}`,
     };
     try {
       const headObjectData = await s3.send(
@@ -27,49 +28,51 @@ const getVideo = async (req, res) => {
       const date = new Date(keys.Date);
       const command = new GetObjectCommand(getObjectParams);
       const url = await getSignedUrl(s3, command);
+      let namapemilik;
       let buzzer;
       if (userMetadata["detection"] === "unknown") {
         buzzer = true;
-      } else if (userMetadata["detection"] === "pemilik") {
+      } else {
         buzzer = false;
       }
-
+      if (userMetadata["namapemilik"] === "unknown") {
+        namapemilik = "unknown";
+      } else {
+        namapemilik = userMetadata["namapemilik"];
+      }
       dataFiles.push({
         key: keys.Key,
+        namapemilik: namapemilik,
         date: date.toDateString(),
         time: date.toTimeString(),
         detection: userMetadata["detection"],
-        video_url: url,
+        image_url: url,
         buzzer_condition: buzzer,
       });
     } catch (error) {
       console.error(`Error getting metadata for ${keys.Key}:`, error);
     }
   };
-  let keys = [];
+
   const listObjectsParams = {
     Bucket: BUCKET_NAME,
-    Prefix: "video/",
+    Prefix: "fotopemilik/",
   };
   const data = await s3.send(new ListObjectsV2Command(listObjectsParams));
   const files = data.Contents;
+  const sortedFiles = files.sort(
+    (a, b) =>
+      new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime()
+  );
 
-  keys = files
-    .map((data) => {
-      return data.Key !== "video/"
-        ? {
-            Key: rmdir(data.Key),
-            Date: data.LastModified,
-          }
-        : null;
-    })
-    .filter(Boolean);
+  for (const file of sortedFiles) {
+    if (file.Key !== "fotopemilik/") {
+      const key = rmdir(file.Key);
+      const date = file.LastModified;
 
-  const promises = keys.map(async (e) => {
-    await getData(e);
-  });
-
-  await Promise.all(promises);
+      await getData({ Key: key, Date: date });
+    }
+  }
 
   res.json(dataFiles);
 };
